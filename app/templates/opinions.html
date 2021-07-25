@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+
+{% block content %}
+                <!-- #################### IMPORTANTE CABECERA PARA QUE FUNCIONE ESTA PÁGINA ##################### -->
+                <head>
+                    <script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.1.4/Chart.bundle.min.js'></script>
+                </head>
+                <!-- #################### IMPORTANTE CABECERA PARA QUE FUNCIONE ESTA PÁGINA ##################### -->
+
+
+
+                <!-- End of Topbar -->
+                <div class="container row">
+                    <div class="col-12">
+                        <h1 class="title_val text-warning">{{titulo}}: {{idxs_values[0].value}}€
+                        <br>
+                                <script>
+                                    var idxs_values = {{ idxs_values | tojson }};
+                                    let idx_val = {"variation":idxs_values[0].variation}//SUSTITUIR POR LA VARIABLE REAL
+                                    let div = document.createElement('div');
+                                    let text = 'N/A';
+                                            var aux = false
+                                            if (idx_val.variation !== null){
+                                                text = ((idx_val.variation > 0) ? '+' : '') + idx_val.variation;
+                                            }
+                                            div = document.createElement('b');
+                                            if(idx_val.variation == 0){
+                                                div.appendChild(document.createTextNode("NO VARIATION"));
+                                            }else{
+                                                div.appendChild(document.createTextNode(text));
+                                            }
+                                            if(idx_val.variation > 0){
+                                                div.setAttribute("class","variation_green");
+                                            }else if(idx_val.variation < 0){
+                                                div.setAttribute("class","variation_red");
+                                            }
+                                            document.body.querySelector(".title_val").appendChild(div);
+                                </script>
+                        </h1>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="card bg-secondary">
+                            <div class="card-header font-weight-bold text-warning">
+                                Filtro por fecha
+                            </div>
+                            <div class="card-body">
+                                <input type="date" id="min_date_selector" name="trip-start">
+
+                                <input type="date" id="max_date_selector" name="trip-start">
+                                <button id="filter_button" type="button"> Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                    <div class="col-12 m-3 bg-secondary">
+                        <div class="card" style="margin: 20px; margin-left:0;">
+                            <div class="card-body bg-dark">
+                                <canvas id="line-chart" width="800" height="250"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+                <!-- Begin Page Content
+                <div class="row">
+
+                    <div class="col">
+                        <div class="row-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    Operar
+                                </div>
+                                <div class="card-body">
+                                    <form action="" method="post" id="operation_form">
+                                        <input id="num_value" type="number" min="0" name="num_value" step="0.01" >
+                                        <p>EUR: <i id="total_num_value"></i></p>
+                                        {% for message in get_flashed_messages() %}
+                                            <p>{{ message }}</p>
+                                        {% endfor %}
+                                        <input type="hidden" name="index" value="{{index_id}}">
+                                        <input type="hidden" name="user" value="{{g.user.id}}">
+                                        <button onclick="document.querySelector('#operation_form').setAttribute('action', '/indexes/buy');submit()" class="btn btn-success">Comprar</button>
+                                        <button onclick="document.querySelector('#operation_form').setAttribute('action', '/indexes/sell');submit()" class="btn btn-danger">Vender</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                        </div>
+                        <script>
+                            var idxs_values = {{ idxs_values | tojson }};
+                            document.querySelector("#num_value").addEventListener('change', (event) => {
+                                    let resultado = document.querySelector('#total_num_value');
+                                    resultado.textContent = parseFloat(idxs_values[0].value)*parseFloat(document.body.querySelector("#num_value").value);
+                            });
+                            document.querySelector("#num_value").addEventListener('keyup', (event) => {
+                                    let resultado = document.querySelector('#total_num_value');
+                                    resultado.textContent = parseFloat(idxs_values[0].value)*parseFloat(document.body.querySelector("#num_value").value);
+                            });
+                        </script>
+
+
+                        <div class="row-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    Historial de transacciones
+                                </div>
+                                <div class="card-body">
+                                    <table id="table" class="styled-table table-md"></table>
+                                </div>
+                            </div>
+
+                        </div>
+                -->
+                        <script>
+                                        var trans_values = {{ transactions | tojson }};
+                                        let table = document.getElementById('table'),
+                                            headers = ['Cantidad total', 'Fecha de compra', 'Valor por acción', 'Cantidad de acciones', 'Operación'],
+                                            headerRow = table.createTHead().insertRow();
+
+                                        headers.forEach(headerText => {
+                                            let header = document.createElement('th');
+                                            let textNode = document.createTextNode(headerText);
+                                            header.appendChild(textNode);
+                                            headerRow.appendChild(header);
+                                        });
+
+                                        var tableBody = document.createElement('tbody');
+                                        //const opinions_url = "{{ url_for('indexes.get_index_opinions', index=':idx') }}";
+                                        trans_values.forEach(idx_val => {
+                                            let row = tableBody.insertRow();
+                                            row.insertCell().appendChild(document.createTextNode(idx_val.amount));
+                                            row.insertCell().appendChild(document.createTextNode(idx_val.fecha));
+                                            row.insertCell().appendChild(document.createTextNode(idx_val.value));
+                                            row.insertCell().appendChild(document.createTextNode(idx_val.quantity));
+                                            let operation;
+                                            if(idx_val.operation==1)operation="Compra";
+                                            else operation="Venta"
+                                            row.insertCell().appendChild(document.createTextNode(operation));
+                                        });
+                                        table.appendChild(tableBody);
+                        </script>
+
+                    <!--</div>-->
+
+
+
+                <div class="row">
+
+                    <div class="col">
+                        <div class="card bg-secondary">
+                            <div class="card-header font-weight-bold text-warning">
+                                Opiniones de expertos
+                            </div>
+                            <div class="card-body">
+                            <!-- Page Heading -->
+                            {% if not opinions %}
+                                <p class="card-text text-danger">No hay opiniones disponibles</p>
+                            {% endif %}
+                            {% for opinion in opinions %}
+                                <div class="card m-3">
+                                    <div class="card-header bg-dark">
+                                        <h5 class="card-title mb-0">
+                                            <a class="text-warning" href="{{ opinion.url }}">
+                                                {{opinion.title}}
+                                            </a>
+                                        </h5>
+                                    </div>
+                                    <div class="card-body bg-dark">
+                                        <p class="card-text text-light">{{ opinion.body }}</p>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            </div>
+                        </div>
+
+                    </div>
+                    <!-- /.container-fluid -->
+                </div>
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <script>
+            const latest_values = {{ latest_values | tojson }};
+
+            var  min_date = latest_values[0]["timestamp"];
+            var  max_date = latest_values[latest_values.length-1]["timestamp"];
+
+            var min_date_selector = document.getElementById("min_date_selector")
+            var max_date_selector = document.getElementById("max_date_selector")
+
+            min_date_selector.setAttribute("min", min_date.replace("/","-").replace("/","-"));
+            min_date_selector.setAttribute("max", max_date.replace("/","-").replace("/","-"));
+            max_date_selector.setAttribute("min", min_date.replace("/","-").replace("/","-"));
+            max_date_selector.setAttribute("max", max_date.replace("/","-").replace("/","-"));
+
+                var chart = new Chart(document.getElementById("line-chart"), {
+                      type: 'line',
+                      data: {
+                        labels: latest_values.map(function(value){
+                            return value.timestamp;
+                        }),
+                        datasets: [{
+                            data: latest_values.map(function(value){
+                                return value.value;
+                            }),
+                            label: "{{ index.name }}",
+                            borderColor: "#f6c23e",
+                            fill: false
+                          },
+                        ]
+                      },
+                      options: {
+                        title: {
+                          display: true,
+                          text: 'Últimos '+ latest_values.length.toString() +' valores'
+                        },
+                        scales: {
+                            yAxes: [{
+                                ticks: {
+                                    fontColor: "white",
+                                },
+                                gridLines: {
+                                  display: true ,
+                                  color: "#dedede"
+                                }
+                            }],
+                            xAxes: [{
+                                ticks: {
+                                    fontColor: "white",
+                                },
+                                gridLines: {
+                                  display: false ,
+                                  color: "#dedede"
+                                }
+                            }]
+                        }
+                      }
+                    });
+
+                    $( "#filter_button" ).click(function() {
+                        var min_date_selected = min_date_selector.value
+                        var max_date_selected = max_date_selector.value
+                        var max_date_selected_formated = new Date(max_date_selector.value)
+                        var min_date_selected_formated = new Date(min_date_selector.value)
+                        range = (max_date_selected_formated-min_date_selected_formated)/(1000*60*60*24);
+                        if (range > 0){
+                            $.ajax({
+                                type: "POST",
+                                url: '/indexes/{{index_id}}/range',
+                                data: {
+                                    range:range,
+                                    min_date:Date.parse(min_date_selected)/1000,
+                                    max_date:Date.parse(max_date_selected)/1000
+                                }, //--> send id of checked checkbox on other page
+                                    success: function(data) {
+                                        chart.destroy()
+                                        chart = new Chart(document.getElementById("line-chart"), {
+                                                  type: 'line',
+                                                  data: {
+                                                    labels: data['data'].map(function(value){
+                                                        return value.timestamp;
+                                                    }),
+                                                    datasets: [{
+                                                        data: data['data'].map(function(value){
+                                                            return value.value;
+                                                        }),
+                                                        label: "{{ index.name }}",
+                                                        borderColor: "#3e95cd",
+                                                        fill: false
+                                                      },
+                                                    ]
+                                                  },
+                                                  options: {
+                                                    title: {
+                                                      display: true,
+                                                      text: 'Últimos ' + range.toString() + ' valores'
+                                                    }
+
+                                                  }
+                                                });
+
+                                        },
+                                    error: function() {
+                                        alert('it broke');
+                                        },
+                                    complete: function() {
+                                        }
+                                });
+                        }else{
+                            alert("Seleccione un intervalo de fechas validas")
+                        }
+                    });
+
+    </script>
+    <style>
+        .row {
+            margin-right: 15px;
+            margin-left: 1px;
+        }
+    </style>
+{% endblock %}
+
+</html>

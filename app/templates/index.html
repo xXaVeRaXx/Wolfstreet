@@ -1,0 +1,418 @@
+{% extends 'base.html' %}
+
+{% block content %}
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+                  AAAAAAAAAAAAAAAAAAAAAAAA
+                    <!-- Content Row -->
+                    <div class="row">
+                        <!-- Area Chart -->
+                        <div class="col-xl-12 col-lg-12">
+                            <div class="card shadow mb-4">
+                                <!-- Card Header - Dropdown -->
+                                <div
+                                    class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-secondary">
+                                    <h6 class="m-0 font-weight-bold text-warning" id=date_today>{{table_text}}</h6>
+                                        <form class="form-inline" action="/indexes" method="POST">
+                                            <select name="date_selector" id="date_selector"></select>
+                                        </form>
+                                    <div class="dropdown no-arrow">
+                                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-light"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <!-- Card Body -->
+                                <div class="card-body bg-secondary">
+                                    <div class="chart-area" id='ParentmyAreaChart'>
+                                        <canvas class="col-lg-12 col-md-12 col-sm-12 col-xs-12 bg-dark" id="myAreaChart"></canvas>
+                                    </div>
+                                </div>
+                                <form class="form-inline" action="/indexes" method="POST">
+                                <div class="card-body bg-secondary">
+                                    <div class="chart-area row justify-content-center">
+                                        <div class="col-lg-6" style="padding-right:0px">
+                                            <div class="m-5">
+                                                <div class="chart-area">
+                                                    <h3 class="text-warning" style="padding-left: 0px;">Valores Indices</h3>
+                                                    <table id="table" class="styled-table table-md text-light bg-dark" style="width:100%"></table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </form>
+
+                                <script>
+                                    var idxs_values = {{ idxs_values | tojson }};
+                                    var idxs_values_all = {{ idxs_values_all | tojson }}
+                                    const idxs_dates = {{ idxs_dates | tojson }};
+                                    let favourites = {{ favourites | tojson }};
+                                    favourites=JSON.stringify(favourites);
+                                    var mySelector = document.getElementById("date_selector");
+
+                                    idxs_dates.forEach(datedText => {
+                                        let option = document.createElement('option');
+                                        let textNode = document.createTextNode(datedText.substring(0, datedText.length - 13));
+                                        option.value = datedText;
+                                        option.appendChild(textNode);
+
+                                        mySelector.appendChild(option);
+
+                                    });
+
+                                    // bar chart data
+                                    var barData = {
+                                        labels: idxs_values.map(function(value){
+                                            return value.index.name;
+                                        }),
+                                        datasets: [{
+                                            label: "Índices Globales",
+                                            backgroundColor: "#f6c23e",
+                                            color: "white",
+                                            pointColor: "rgba(151,187,205,1)",
+                                            data: idxs_values.map(function(value){
+                                                return value.value;
+                                            })
+                                        }]
+                                    };
+
+                                    // get bar chart canvas
+                                    var mychart = document.getElementById("myAreaChart").getContext("2d"),
+                                        steps = 20;
+
+                                    var chart = new Chart(mychart, {
+                                            type: 'bar',
+                                            data: barData,
+                                            options: {
+                                                legend: {
+                                                    labels: {
+                                                        fontColor: "white",
+                                                        fontSize: 20
+                                                    }
+                                                },
+                                                scales: {
+                                                    yAxes: [{
+                                                        ticks: {
+                                                            fontColor: "white",
+                                                        },
+                                                        gridLines: {
+                                                          display: true ,
+                                                          color: "#dedede"
+                                                        }
+                                                    }],
+                                                    xAxes: [{
+                                                        ticks: {
+                                                            fontColor: "white",
+                                                        },
+                                                        gridLines: {
+                                                          display: false ,
+                                                          color: "#dedede"
+                                                        }
+                                                    }]
+                                                }
+                                            },
+                                            scaleOverride: true,
+                                            scaleSteps: steps,
+                                            scaleStepWidth: Math.ceil(
+                                                idxs_values.reduce(function (p, v) {
+                                                    return (p.value > v.value ? p : v);
+                                                }, {value: 0}).value / steps),
+                                            scaleStartValue: 0,
+                                            scaleShowVerticalLines: true,
+                                            scaleShowGridLines: true,
+                                            barShowStroke: true,
+                                            scaleShowLabels: true
+                                        });
+
+                                    let table = document.getElementById('table'),
+                                        headers = ['Name', 'Value', 'Variation'],
+                                        headerRow = table.createTHead().insertRow();
+
+                                    headers.forEach(headerText => {
+                                        let header = document.createElement('th');
+                                        let textNode = document.createTextNode(headerText);
+                                        header.appendChild(textNode);
+                                        headerRow.appendChild(header);
+                                    });
+
+                                    var tableBody = document.createElement('tbody');
+                                    const opinions_url = "{{ url_for('indexes.get_index_opinions', index=':idx') }}";
+                                    idxs_values_all.forEach(idx_val => {
+                                        let row = tableBody.insertRow(),
+                                            div = document.createElement('div');
+                                            a = document.createElement('a');
+                                            input = document.createElement('input');
+                                            label = document.createElement('label');
+
+                                        a.appendChild(document.createTextNode(idx_val.index.name));
+                                        a.href = opinions_url.replace(':idx', idx_val.index.id);
+                                        a.classList.add("p-1");//mr-1 si quieres solo padding por la derecha. El p-1 pone un poco por todos lados
+
+                                        /*
+                                        input.type="checkbox";
+                                        input.name = "favourites";
+                                        input.classList.add("favs_checkbox");
+                                        input.value = idx_val.index.id;
+                                        input.appendChild(document.createTextNode("Favourite"));
+                                        if(favourites.includes(idx_val.index.id))input.checked=true;
+
+                                        div.appendChild(a);
+                                        div.appendChild(input)
+                                        */
+                                        input.type="checkbox";
+                                        input.name = "favourites";
+                                        input.value = idx_val.index.id;
+                                        input.classList.add("form-check-input");
+                                        input.classList.add("favs_checkbox");
+                                        input.id="flexSwitchCheckDefault";
+                                        if(favourites.includes(idx_val.index.id))input.checked=true;
+
+                                        label.classList.add("form-check-label");
+                                        label.setAttribute("for", "flexSwitchCheckDefault");
+                                        label.appendChild(a);
+
+                                        div.classList.add("form-check");
+                                        div.classList.add("form-switch");
+                                        div.appendChild(input);
+                                        div.appendChild(label);
+
+                                        row.insertCell().appendChild(div);
+                                        row.insertCell().appendChild(document.createTextNode(idx_val.value));
+
+                                        /*POR SI FALLA EL DE ARRIBA
+                                        a = document.createElement('a');
+
+                                        a.appendChild(document.createTextNode(idx_val.index.name));
+                                        a.href = opinions_url.replace(':idx', idx_val.index.id);
+
+                                        row.insertCell().appendChild(a);
+                                        row.insertCell().appendChild(document.createTextNode(idx_val.value));
+                                        */
+
+                                        let text = 'N/A';
+                                        var aux = false
+                                        if (idx_val.variation !== null){
+                                            text = ((idx_val.variation > 0) ? '+' : '') + idx_val.variation;
+                                        }
+                                        div = document.createElement('div');
+                                        if(idx_val.variation == 0){
+                                            div.appendChild(document.createTextNode("NO VARIATION"));
+                                        }else{
+                                            div.appendChild(document.createTextNode(text));
+                                        }
+                                        if(idx_val.variation > 0){
+                                            div.setAttribute("class","variation_green");
+                                        }else if(idx_val.variation < 0){
+                                            div.setAttribute("class","variation_red");
+                                        }
+                                        row.insertCell().appendChild(div);
+                                    });
+                                    table.appendChild(tableBody);
+
+                                    let date_today=document.querySelector("#date_today").textContent;
+                                    let selector=document.querySelector("#date_selector");
+                                    selector.value=document.querySelectorAll("option")[0].value;
+                                    if(date_today!="Datos actuales"){
+                                        selector.value=date_today.replace("Datos de ", "")+" 00:00:00 GMT";
+                                    }
+
+                                        $('#date_selector').on('change', function (e) {
+                                            var date = $(this).val()
+                                                $.ajax({
+                                                    type: "POST",
+                                                    headers: {
+                                                        'Content-Type': 'text/plain'
+                                                            },
+                                                    url: '/indexes/date',
+                                                    data: {
+                                                        selected_date:date
+                                                    },
+                                                    success: function(data) {
+                                                        $("#date_today").text(data['table_text']);
+                                                        var mychart = document.getElementById("myAreaChart").getContext("2d"), steps = 20;
+                                                        var barData = {
+                                                            labels: data['data'].map(function(value){
+                                                            return value.index.name;
+                                                            }),
+                                                            datasets: [{
+                                                                    label: "Índices Globales",
+                                                                    backgroundColor: "#f6c23e",
+                                                                    color: "white",
+                                                                    pointColor: "rgba(151,187,205,1)",
+                                                                    data: data['data'].map(function(value){
+                                                                        return value.value;
+                                                                    })
+                                                                }]
+                                                        };
+                                                        chart.destroy()
+                                                        chart = new Chart(mychart, {
+                                                                type: 'bar',
+                                                                data: barData,
+                                                                options: {
+                                                                    legend: {
+                                                                        labels: {
+                                                                            fontColor: "white",
+                                                                            fontSize: 20
+                                                                        }
+                                                                    },
+                                                                    scales: {
+                                                                        yAxes: [{
+                                                                            ticks: {
+                                                                                fontColor: "white",
+                                                                            },
+                                                                            gridLines: {
+                                                                              display: true ,
+                                                                              color: "#dedede"
+                                                                            }
+                                                                        }],
+                                                                        xAxes: [{
+                                                                            ticks: {
+                                                                                fontColor: "white",
+                                                                            },
+                                                                            gridLines: {
+                                                                              display: false ,
+                                                                              color: "#dedede"
+                                                                            }
+                                                                        }]
+                                                                    }
+                                                                },
+                                                                scaleOverride: true,
+                                                                scaleSteps: steps,
+                                                                scaleStepWidth: Math.ceil(
+                                                                    idxs_values.reduce(function (p, v) {
+                                                                        return (p.value > v.value ? p : v);
+                                                                    }, {value: 0}).value / steps),
+                                                                scaleStartValue: 0,
+                                                                scaleShowVerticalLines: true,
+                                                                scaleShowGridLines: true,
+                                                                barShowStroke: true,
+                                                                scaleShowLabels: true
+                                                            });
+
+                                                        var row = document.getElementsByTagName('tbody')[0]
+                                                        var head = document.getElementsByTagName('thead')[0]
+                                                        row.parentNode.removeChild(row);
+                                                        head.parentNode.removeChild(head);
+
+                                                        let table = document.getElementById('table'),
+                                                            headers = ['Name', 'Value', 'Variation'],
+                                                            headerRow = table.createTHead().insertRow();
+
+                                                        headers.forEach(headerText => {
+                                                            let header = document.createElement('th');
+                                                            let textNode = document.createTextNode(headerText);
+                                                            header.appendChild(textNode);
+                                                            headerRow.appendChild(header);
+                                                        });
+
+                                                        var tableBody = document.createElement('tbody');
+                                                        const opinions_url = "{{ url_for('indexes.get_index_opinions', index=':idx') }}";
+                                                        data['data_all'].forEach(idx_val => {
+                                                            let row = tableBody.insertRow(),
+                                                                div = document.createElement('div');
+                                                                a = document.createElement('a');
+                                                                input = document.createElement('input');
+                                                                label = document.createElement('label');
+
+                                                            a.appendChild(document.createTextNode(idx_val.index.name));
+                                                            a.href = opinions_url.replace(':idx', idx_val.index.id);
+/*
+                                                            input.type="checkbox";
+                                                            input.name = "favourites";
+                                                            input.classList.add("favs_checkbox");
+                                                            input.value = idx_val.index.id;
+                                                            input.appendChild(document.createTextNode("Favourite"));
+                                                            if(favourites.includes(idx_val.index.id))input.checked=true;
+
+                                                            div.appendChild(a);
+                                                            div.appendChild(input)
+*/
+                                                            input.type="checkbox";
+                                                            input.name = "favourites";
+                                                            input.value = idx_val.index.id;
+                                                            input.classList.add("form-check-input");
+                                                            input.classList.add("favs_checkbox");
+                                                            input.id="flexSwitchCheckDefault";
+                                                            if(favourites.includes(idx_val.index.id))input.checked=true;
+
+                                                            label.classList.add("form-check-label");
+                                                            label.setAttribute("for", "flexSwitchCheckDefault");
+                                                            label.appendChild(a);
+
+                                                            div.classList.add("form-check");
+                                                            div.classList.add("form-switch");
+                                                            div.appendChild(input);
+                                                            div.appendChild(label);
+
+                                                            row.insertCell().appendChild(div);
+                                                            row.insertCell().appendChild(document.createTextNode(idx_val.value));
+                                                            let text = 'N/A';
+                                                            var aux = false
+                                                            if (idx_val.variation !== null){
+                                                                text = ((idx_val.variation > 0) ? '+' : '') + idx_val.variation;
+                                                            }
+                                                            div = document.createElement('div');
+                                                            if(idx_val.variation == 0){
+                                                                div.appendChild(document.createTextNode("NO VARIATION"));
+                                                            }else{
+                                                                div.appendChild(document.createTextNode(text));
+                                                            }
+                                                            if(idx_val.variation > 0){
+                                                                div.setAttribute("class","variation_green");
+                                                            }else if(idx_val.variation < 0){
+                                                                div.setAttribute("class","variation_red");
+                                                            }
+                                                            row.insertCell().appendChild(div);
+                                                        });
+                                                        table.appendChild(tableBody);
+                                                    },
+                                                     error: function() {
+                                                        alert('it broke');
+                                                    },
+                                                    complete: function() {
+                                                    }
+                                                });
+                                          });
+
+                                        $(document).on("click",'.favs_checkbox', function(){
+                                        id = $(this).attr('value')
+                                                $.ajax({
+                                                    type: "POST",
+                                                    url: '',
+                                                    data: {
+                                                        fav_id:id,
+                                                        user_id:{{user_id}}
+                                                    }, //--> send id of checked checkbox on other page
+                                                    success: function(data) {
+                                                    },
+                                                     error: function() {
+                                                        alert('it broke');
+                                                    },
+                                                    complete: function() {
+                                                    }
+                                                });
+                                          });
+                                </script>
+                            </div>
+                        </div>
+                        <!-- Pie Chart -->
+                    </div>
+                    <!-- Content Row -->
+                </div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
